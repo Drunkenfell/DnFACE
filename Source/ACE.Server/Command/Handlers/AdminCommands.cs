@@ -2742,7 +2742,7 @@ namespace ACE.Server.Command.Handlers
                 {    
                     player.SendMessage(msg);
                     PlayerManager.BroadcastToAuditChannel(session.Player, $"{session.Player.Name} has sent text to {parameters[0]} using direct_emote_name.");
-                    PlayerManager.BroadcastToAuditChannel(session.Player, $"{session.Player.Name} has sent text to {parameters[0]} using direct_emote_name.");
+                    PlayerManager.BroadcastToAuditChannel(session.Player, $"The following text was sent: {parameters[1]}");
                 }
                 else
                     session.Network.EnqueueSend(new GameMessageSystemChat($"Player {playerName} is not online.", ChatMessageType.Broadcast));
