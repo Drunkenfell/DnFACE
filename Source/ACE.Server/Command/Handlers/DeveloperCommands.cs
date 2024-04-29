@@ -108,7 +108,7 @@ namespace ACE.Server.Command.Handlers
                 session.Network.EnqueueSend(positionMessage);
             }
         }
-
+        
         /// <summary>
         /// Attempts to remove the hourglass / fix the busy state for the player
         /// </summary>
@@ -406,11 +406,12 @@ namespace ACE.Server.Command.Handlers
         /// <summary>
         /// Debug command to spawn the Barber UI
         /// </summary>
-        [CommandHandler("barbershop", AccessLevel.Developer, CommandHandlerFlag.RequiresWorld, "Displays the barber ui")]
+        [CommandHandler("barbershop", AccessLevel.Advocate, CommandHandlerFlag.RequiresWorld, "Displays the barber ui")]
         public static void BarberShop(Session session, params string[] parameters)
         {
             session.Player.BarberActive = true;
             session.Network.EnqueueSend(new GameEventStartBarber(session));
+            PlayerManager.BroadcastToAuditChannel(session.Player, $"{session.Player.Name} has invoked a BarberShop session.");
         }
 
 
@@ -421,7 +422,7 @@ namespace ACE.Server.Command.Handlers
         /// <summary>
         /// Debug command to print out all of the active players connected too the server.
         /// </summary>
-        [CommandHandler("listplayers", AccessLevel.Developer, CommandHandlerFlag.None, 0, "Displays all of the active players connected too the server.")]
+        [CommandHandler("listplayers", AccessLevel.Envoy, CommandHandlerFlag.None, 0, "Displays all of the active players connected too the server.")]
         public static void HandleListPlayers(Session session, params string[] parameters)
         {
             string message = "";
@@ -479,7 +480,7 @@ namespace ACE.Server.Command.Handlers
         /// This is a VERY crude test. It should never be used on a live server.
         /// There isn't really much point to this command other than making sure landblocks can load and are semi-efficient.
         /// </summary>
-        [CommandHandler("loadalllandblocks", AccessLevel.Developer, CommandHandlerFlag.None, "Loads all Landblocks. This is VERY crude. Do NOT use it on a live server!!! It will likely crash the server.  Landblock resources will be loaded async and will continue to do work even after all landblocks have been loaded.")]
+        [CommandHandler("loadalllandblocks", AccessLevel.Admin, CommandHandlerFlag.None, "Loads all Landblocks. This is VERY crude. Do NOT use it on a live server!!! It will likely crash the server.  Landblock resources will be loaded async and will continue to do work even after all landblocks have been loaded.")]
         public static void HandleLoadAllLandblocks(Session session, params string[] parameters)
         {
             CommandHandlerHelper.WriteOutputInfo(session, "Loading landblocks. This will likely crash the server. Landblock resources will be loaded async and will continue to do work even after all landblocks have been loaded.");
@@ -648,7 +649,7 @@ namespace ACE.Server.Command.Handlers
             session.Player.CoinValue = coins;
             session.Network.EnqueueSend(new GameMessagePrivateUpdatePropertyInt(session.Player, PropertyInt.CoinValue, coins));
         }
-
+        
 
         // ==================================
         // Teleport + Positions/Locations
@@ -657,7 +658,7 @@ namespace ACE.Server.Command.Handlers
         /// <summary>
         /// telexyz cell x y z qx qy qz qw
         /// </summary>
-        [CommandHandler("telexyz", AccessLevel.Developer, CommandHandlerFlag.RequiresWorld, 8, "Teleport to a location.", "cell x y z qx qy qz qw\n" + "all parameters must be specified and cell must be in decimal form")]
+        [CommandHandler("telexyz", AccessLevel.Sentinel, CommandHandlerFlag.RequiresWorld, 8, "Teleport to a location.", "cell x y z qx qy qz qw\n" + "all parameters must be specified and cell must be in decimal form")]
         public static void HandleDebugTeleportXYZ(Session session, params string[] parameters)
         {
             if (!uint.TryParse(parameters[0], out var cell))
@@ -674,12 +675,13 @@ namespace ACE.Server.Command.Handlers
             }
 
             session.Player.Teleport(new Position(cell, positionData[0], positionData[1], positionData[2], positionData[3], positionData[4], positionData[5], positionData[6]));
+            PlayerManager.BroadcastToAuditChannel(session.Player, $"{session.Player.Name} used telexyz and teleported to {cell}, {positionData[0]}, {positionData[1]}, {positionData[2]}, {positionData[4]}, {positionData[5]}, {positionData[6]}, {positionData[3]}.");
         }
 
         /// <summary>
         /// Debug command to teleport a player to a saved position, if the position type exists within the database.
         /// </summary>
-        [CommandHandler("teletype", AccessLevel.Developer, CommandHandlerFlag.RequiresWorld, 1, "Teleport to a saved character position.", "uint 0-22\n" + "@teletype 1")]
+        [CommandHandler("teletype", AccessLevel.Advocate, CommandHandlerFlag.RequiresWorld, 1, "Teleport to a saved character position.", "uint 0-22\n" + "@teletype 1")]
         public static void HandleTeleType(Session session, params string[] parameters)
         {
             if (parameters?.Length > 0)
@@ -689,7 +691,10 @@ namespace ACE.Server.Command.Handlers
                 if (Enum.TryParse(parsePositionString, true, out PositionType positionType))
                 {
                     if (session.Player.TeleToPosition(positionType))
-                        session.Network.EnqueueSend(new GameMessageSystemChat($"{PositionType.Location} {session.Player.Location}", ChatMessageType.Broadcast));
+                        {
+                            session.Network.EnqueueSend(new GameMessageSystemChat($"{PositionType.Location} {session.Player.Location}", ChatMessageType.Broadcast));
+                            PlayerManager.BroadcastToAuditChannel(session.Player, $"{session.Player.Name} teleported to {session.Player.Location} using teletype.");
+                        }
                     else
                         session.Network.EnqueueSend(new GameMessageSystemChat($"Error finding saved character position: {positionType}", ChatMessageType.Broadcast));
                 }
@@ -699,7 +704,7 @@ namespace ACE.Server.Command.Handlers
         /// <summary>
         /// Debug command to print out all of the saved character positions.
         /// </summary>
-        [CommandHandler("listpositions", AccessLevel.Developer, CommandHandlerFlag.RequiresWorld, 0, "Displays all available saved character positions from the database.")]
+        [CommandHandler("listpositions", AccessLevel.Advocate, CommandHandlerFlag.RequiresWorld, 0, "Displays all available saved character positions from the database.")]
         public static void HandleListPositions(Session session, params string[] parameters)
         {
             var posDict = session.Player.GetAllPositions();
@@ -716,7 +721,7 @@ namespace ACE.Server.Command.Handlers
         /// <summary>
         /// Debug command to save the player's current location as specific position type.
         /// </summary>
-        [CommandHandler("setposition", AccessLevel.Developer, CommandHandlerFlag.RequiresWorld, 1, "Saves the supplied character position type to the database.", "uint 1-27\n" + "@setposition 1")]
+        [CommandHandler("setposition", AccessLevel.Advocate, CommandHandlerFlag.RequiresWorld, 1, "Saves the supplied character position type to the database.", "uint 1-27\n" + "@setposition 1")]
         public static void HandleSetPosition(Session session, params string[] parameters)
         {
             if (parameters?.Length == 1)
@@ -747,7 +752,7 @@ namespace ACE.Server.Command.Handlers
             session.Network.EnqueueSend(new GameMessageSystemChat("Could not determine the correct position type.\nPlease supply a single integer value from within the range of 1 through 27.", ChatMessageType.Broadcast));
         }
 
-        [CommandHandler("gps", AccessLevel.Developer, CommandHandlerFlag.RequiresWorld, "Display location.")]
+        [CommandHandler("gps", AccessLevel.Sentinel, CommandHandlerFlag.RequiresWorld, "Display location.")]
         public static void HandleDebugGPS(Session session, params string[] parameters)
         {
             var position = session.Player.Location;
@@ -767,6 +772,7 @@ namespace ACE.Server.Command.Handlers
         {
             if (uint.TryParse(parameters[0], out var titleId))
                 session.Player.AddTitle(titleId);
+                PlayerManager.BroadcastToAuditChannel(session.Player, $"{session.Player.Name} used the addtitle command and gave themself title {titleId}.");
         }
 
         /// <summary>
@@ -777,6 +783,7 @@ namespace ACE.Server.Command.Handlers
         {
             foreach (CharacterTitle title in Enum.GetValues(typeof(CharacterTitle)))
                 session.Player.AddTitle((uint)title);
+                PlayerManager.BroadcastToAuditChannel(session.Player, $"{session.Player.Name} used the addalltitles command.");
         }
 
 
@@ -886,6 +893,7 @@ namespace ACE.Server.Command.Handlers
 
                 foreach (var i in player.EquippedObjects.Values.Where(i => i.HasItemLevel))
                     session.Network.EnqueueSend(new GameMessageSystemChat($"{amount:N0} experience granted to {i.Name}.", ChatMessageType.Broadcast));
+                    PlayerManager.BroadcastToAuditChannel(session.Player, $"{session.Player.Name} has granted {amount:N0} experience to {item.Name}.");
             }
             else
             {
@@ -894,6 +902,7 @@ namespace ACE.Server.Command.Handlers
                     session.Player.GrantItemXP(item, amount);
 
                     session.Network.EnqueueSend(new GameMessageSystemChat($"{amount:N0} experience granted to {item.Name}.", ChatMessageType.Broadcast));
+                    PlayerManager.BroadcastToAuditChannel(session.Player, $"{session.Player.Name} granted {amount:N0} experience to {item.Name}.");
                 }
                 else
                     session.Network.EnqueueSend(new GameMessageSystemChat($"{item.Name} is not a levelable item.", ChatMessageType.Broadcast));
@@ -906,6 +915,7 @@ namespace ACE.Server.Command.Handlers
             session.Player.SpendAllXp();
 
             ChatPacket.SendServerMessage(session, "All available xp has been spent. You must now log out for the updated values to take effect.", ChatMessageType.Broadcast);
+            PlayerManager.BroadcastToAuditChannel(session.Player, $"{session.Player.Name} used the spendallxp command.");
         }
 
 
@@ -976,6 +986,7 @@ namespace ACE.Server.Command.Handlers
                     var updatePlayersHealth = new GameMessagePrivateUpdateAttribute2ndLevel(session.Player, Vital.Health, session.Player.Health.Current);
                     var message = new GameMessageSystemChat($"Attempting to set health to {health}...", ChatMessageType.Broadcast);
                     session.Network.EnqueueSend(updatePlayersHealth, message);
+                    PlayerManager.BroadcastToAuditChannel(session.Player, $"{session.Player.Name} used the sethealth command and set their health to {health}.");
                     return;
                 }
             }
@@ -1023,6 +1034,7 @@ namespace ACE.Server.Command.Handlers
             HashSet<uint> weenieIds = new HashSet<uint> { 93, 148, 300, 307, 311, 326, 338, 348, 350, 7765, 12748, 12463, 31812 };
 
             AddWeeniesToInventory(session, weenieIds);
+            PlayerManager.BroadcastToAuditChannel(session.Player, $"{session.Player.Name} has used the weapons command and created weenies 93, 148, 300, 307, 311, 326, 338, 348, 350, 7765, 12748, 12463, 31812 in their inventory.");
         }
 
         [CommandHandler("inv", AccessLevel.Developer, CommandHandlerFlag.RequiresWorld, 0, "Creates sample items, foci and containers in your inventory.")]
@@ -1031,6 +1043,7 @@ namespace ACE.Server.Command.Handlers
             HashSet<uint> weenieIds = new HashSet<uint> { 44, 45, 46, 136, 5893, 15268, 15269, 15270, 15271, 12748 };
 
             AddWeeniesToInventory(session, weenieIds);
+            PlayerManager.BroadcastToAuditChannel(session.Player, $"{session.Player.Name} has used the inv command and created weenies 44, 45, 46, 136, 5893, 15268, 15269, 15270, 15271, 12748 in their inventory.");
         }
 
         [CommandHandler("splits", AccessLevel.Developer, CommandHandlerFlag.RequiresWorld, 0, "Creates some stackable items in your inventory for testing.")]
@@ -1039,6 +1052,7 @@ namespace ACE.Server.Command.Handlers
             HashSet<uint> weenieIds = new HashSet<uint> { 300, 690, 20630, 20631, 31198, 37155 };
 
             AddWeeniesToInventory(session, weenieIds);
+            PlayerManager.BroadcastToAuditChannel(session.Player, $"{session.Player.Name} has used the splits command and created weenies 300, 690, 20630, 20631, 31198, 37155 in their inventory.");
         }
 
         [CommandHandler("comps", AccessLevel.Developer, CommandHandlerFlag.RequiresWorld, 0, "Creates spell component items in your inventory for testing.")]
@@ -1047,6 +1061,7 @@ namespace ACE.Server.Command.Handlers
             HashSet<uint> weenieIds = new HashSet<uint> { 686, 687, 688, 689, 690, 691, 740, 741, 742, 743, 744, 745, 746, 747, 748, 749, 750, 751, 752, 753, 754, 755, 756, 757, 758, 759, 760, 761, 762, 763, 764, 765, 766, 767, 768, 769, 770, 771, 772, 773, 774, 775, 776, 777, 778, 779, 780, 781, 782, 783, 784, 785, 786, 787, 788, 789, 790, 791, 792, 1643, 1644, 1645, 1646, 1647, 1648, 1649, 1650, 1651, 1652, 1653, 1654, 7299, 7581, 8897, 20631 };
 
             AddWeeniesToInventory(session, weenieIds, 1);
+            PlayerManager.BroadcastToAuditChannel(session.Player, $"{session.Player.Name} has used the comps command and created weenies 686, 687, 688, 689, 690, 691, 740, 741, 742, 743, 744, 745, 746, 747, 748, 749, 750, 751, 752, 753, 754, 755, 756, 757, 758, 759, 760, 761, 762, 763, 764, 765, 766, 767, 768, 769, 770, 771, 772, 773, 774, 775, 776, 777, 778, 779, 780, 781, 782, 783, 784, 785, 786, 787, 788, 789, 790, 791, 792, 1643, 1644, 1645, 1646, 1647, 1648, 1649, 1650, 1651, 1652, 1653, 1654, 7299, 7581, 8897, 20631 in their inventory.");
         }
 
         [CommandHandler("food", AccessLevel.Developer, CommandHandlerFlag.RequiresWorld, 0, "Creates some food items in your inventory for testing.")]
@@ -1055,6 +1070,7 @@ namespace ACE.Server.Command.Handlers
             HashSet<uint> weenieIds = new HashSet<uint> { 259, 259, 260, 377, 378, 379 };
 
             AddWeeniesToInventory(session, weenieIds);
+            PlayerManager.BroadcastToAuditChannel(session.Player, $"{session.Player.Name} has used the food command and created weenies 259, 259, 260, 377, 378, 379 in their inventory.");
         }
 
         [CommandHandler("currency", AccessLevel.Developer, CommandHandlerFlag.RequiresWorld, 0, "Creates some currency items in your inventory for testing.")]
@@ -1063,6 +1079,7 @@ namespace ACE.Server.Command.Handlers
             HashSet<uint> weenieIds = new HashSet<uint> { 273, 20630 };
 
             AddWeeniesToInventory(session, weenieIds);
+            PlayerManager.BroadcastToAuditChannel(session.Player, $"{session.Player.Name} has used the currency command and created weenies 273 and 20630 in their inventory.");
         }
 
         [CommandHandler("cirand", AccessLevel.Developer, CommandHandlerFlag.RequiresWorld, 1, "Creates random objects in your inventory.", "type (string or number) <num to create> defaults to 10 if omitted, max 50")]
@@ -1124,6 +1141,7 @@ namespace ACE.Server.Command.Handlers
                 session.Player.LearnSpellsInBulk(MagicSchool.VoidMagic, spellLevel);
                 session.Player.LearnSpellsInBulk(MagicSchool.WarMagic, spellLevel);
             }
+                PlayerManager.BroadcastToAuditChannel(session.Player, $"{session.Player.Name} used the addallspells command.");
         }
 
         /// <summary>
@@ -1350,6 +1368,7 @@ namespace ACE.Server.Command.Handlers
                     {
                         player.ContractManager.Add(contractId);
                         session.Player.SendMessage($"Contract for \"{datContract.ContractName}\" ({contractId}) bestowed on {player.Name}");
+                        PlayerManager.BroadcastToAuditChannel(session.Player, $"{session.Player.Name} bestowed contract for {datContract.ContractName} ({contractId}) on {player.Name}.");
                         return;
                     }
                     else
@@ -1373,6 +1392,7 @@ namespace ACE.Server.Command.Handlers
                     {
                         player.ContractManager.EraseAll();
                         session.Player.SendMessage($"All contracts deleted for {player.Name}.");
+                        PlayerManager.BroadcastToAuditChannel(session.Player, $"{session.Player.Name} erased all contracts from player {player.Name}.");
                         return;
                     }
 
@@ -1394,6 +1414,7 @@ namespace ACE.Server.Command.Handlers
                     }
                     player.ContractManager.Erase(contractId);
                     session.Player.SendMessage($"{datContract.ContractName} ({contractId}) deleted for {player.Name}.");
+                    PlayerManager.BroadcastToAuditChannel(session.Player, $"{session.Player.Name} erased contract {contractId} from {player.Name}.");
                     return;
                 }
             }
@@ -1545,6 +1566,7 @@ namespace ACE.Server.Command.Handlers
             amount = Math.Min(amount, (obj.ItemMaxMana ?? 0) - (obj.ItemCurMana ?? 0));
             obj.ItemCurMana += amount;
             session.Network.EnqueueSend(new GameMessageSystemChat($"You give {amount} points of mana to the {obj.Name}.", ChatMessageType.Magic));
+            PlayerManager.BroadcastToAuditChannel(session.Player, $"{session.Player.Name} has given {amount} points of mana to the {obj.Name}.");
         }
 
         /// <summary>
@@ -1764,7 +1786,7 @@ namespace ACE.Server.Command.Handlers
         /// <summary>
         /// Shows the current player location, from the server perspective
         /// </summary>
-        [CommandHandler("myloc", AccessLevel.Developer, CommandHandlerFlag.RequiresWorld, 0, "Shows the current player location, from the server perspective")]
+        [CommandHandler("myloc", AccessLevel.Sentinel, CommandHandlerFlag.RequiresWorld, 0, "Shows the current player location, from the server perspective")]
         public static void HandleMyLoc(Session session, params string[] parameters)
         {
             session.Network.EnqueueSend(new GameMessageSystemChat($"CurrentLandblock: {session.Player.CurrentLandblock.Id.Landblock:X4}", ChatMessageType.Broadcast));
@@ -1841,6 +1863,7 @@ namespace ACE.Server.Command.Handlers
                 value = Convert.ToString(obj.GetProperty((PropertyDataId)result));
 
             session.Network.EnqueueSend(new GameMessageSystemChat($"{obj.Name} ({obj.Guid}): {prop} = {value}", ChatMessageType.Broadcast));
+            PlayerManager.BroadcastToAuditChannel(session.Player, $"{session.Player.Name} used get property for {obj.Name} ({obj.Guid}): {prop} = {value}");
         }
 
         /// <summary>
@@ -2048,6 +2071,7 @@ namespace ACE.Server.Command.Handlers
                 int.TryParse(parameters[0], out flags);
 
             session.Player.UpdateProperty(session.Player, PropertyInt.AetheriaBitfield, flags);
+            PlayerManager.BroadcastToAuditChannel(session.Player, $"{session.Player.Name} has enabled their Aetheria slots.");
         }
 
         [CommandHandler("debugchess", AccessLevel.Developer, CommandHandlerFlag.RequiresWorld, "Shows the chess move history for a player")]
@@ -2065,7 +2089,7 @@ namespace ACE.Server.Command.Handlers
         /// <summary>
         /// Teleports directly to a dungeon by name or landblock
         /// </summary>
-        [CommandHandler("teledungeon", AccessLevel.Developer, CommandHandlerFlag.RequiresWorld, 1, "Teleport to a dungeon", "<dungeon name or landblock>")]
+        [CommandHandler("teledungeon", AccessLevel.Advocate, CommandHandlerFlag.RequiresWorld, 1, "Teleport to a dungeon", "<dungeon name or landblock>")]
         public static void HandleTeleDungeon(Session session, params string[] parameters)
         {
             var isBlock = true;
@@ -2125,6 +2149,7 @@ namespace ACE.Server.Command.Handlers
                 WorldObject.AdjustDungeon(pos);
 
                 session.Player.Teleport(pos);
+                PlayerManager.BroadcastToAuditChannel(session.Player, $"{session.Player.Name} has teleported to dungeon {pos}.");
             }
         }
 
@@ -2159,13 +2184,14 @@ namespace ACE.Server.Command.Handlers
                 WorldObject.AdjustDungeon(pos);
 
                 session.Player.Teleport(pos);
+                PlayerManager.BroadcastToAuditChannel(session.Player, $"{session.Player.Name} has teleported to dungeon {searchName}.");
             }
         }
 
         /// <summary>
         /// Shows the dungeon name for the current landblock
         /// </summary>
-        [CommandHandler("dungeonname", AccessLevel.Developer, CommandHandlerFlag.RequiresWorld, "Shows the dungeon name for the current landblock")]
+        [CommandHandler("dungeonname", AccessLevel.Advocate, CommandHandlerFlag.RequiresWorld, "Shows the dungeon name for the current landblock")]
         public static void HandleDungeonName(Session session, params string[] parameters)
         {
             var landblock = session.Player.Location.Landblock;
@@ -2208,6 +2234,7 @@ namespace ACE.Server.Command.Handlers
             VertexCache.Clear();
 
             CommandHandlerHelper.WriteOutputInfo(session, "Physics caches cleared");
+            PlayerManager.BroadcastToAuditChannel(session.Player, $"{session.Player.Name} has cleared the physics caches.");
         }
 
         [CommandHandler("forcegc", AccessLevel.Developer, CommandHandlerFlag.None, 0, "Forces .NET Garbage Collection")]
@@ -2216,6 +2243,7 @@ namespace ACE.Server.Command.Handlers
             GC.Collect();
 
             CommandHandlerHelper.WriteOutputInfo(session, ".NET Garbage Collection forced");
+            PlayerManager.BroadcastToAuditChannel(session.Player, $"{session.Player.Name} has forced .Net Garbage Collection.");
         }
 
         [CommandHandler("forcegc2", AccessLevel.Developer, CommandHandlerFlag.None, 0, "Forces .NET Garbage Collection with LOH Compact")]
@@ -2228,6 +2256,7 @@ namespace ACE.Server.Command.Handlers
             GC.Collect();
 
             CommandHandlerHelper.WriteOutputInfo(session, ".NET Garbage Collection forced with LOH Compact");
+            PlayerManager.BroadcastToAuditChannel(session.Player, $"{session.Player.Name} has forced NET Garbage Collection forced with LOH Compact.");
         }
 
         [CommandHandler("auditobjectmaint", AccessLevel.Developer, CommandHandlerFlag.None, 0, "Iterates over physics objects to find leaks")]
@@ -2328,6 +2357,7 @@ namespace ACE.Server.Command.Handlers
             var success = LootGenerationFactory.MutateItem(wo, profile, true);
 
             session.Player.TryCreateInInventoryWithNetworking(wo);
+            PlayerManager.BroadcastToAuditChannel(session.Player, $"{session.Player.Name} has generated a {wo.Name} ({wo.WeenieClassId}) in their inventory.");
         }
 
         [CommandHandler("ciloot", AccessLevel.Developer, CommandHandlerFlag.RequiresWorld, 1, "Generates randomized loot in player's inventory", "<tier> optional: <# items>")]
@@ -2354,10 +2384,14 @@ namespace ACE.Server.Command.Handlers
                 //var wo = LootGenerationFactory.CreateRandomLootObjects(profile, true);
                 var wo = LootGenerationFactory.CreateRandomLootObjects_New(profile, TreasureItemCategory.MagicItem);
                 if (wo != null)
+                {
                     session.Player.TryCreateInInventoryWithNetworking(wo);
+                    PlayerManager.BroadcastToAuditChannel(session.Player, $"{session.Player.Name} has generated tier {tier} {wo.Name} ({wo.WeenieClassId}) in their inventory.");
+                }
                 else
                     log.Error($"{session.Player.Name}.HandleCILoot: LootGenerationFactory.CreateRandomLootObjects({tier}) returned null");
             }
+            PlayerManager.BroadcastToAuditChannel(session.Player, $"{session.Player.Name} has generated {numItems} tier {tier} item(s) in their inventory.");
         }
 
         [CommandHandler("makeiou", AccessLevel.Developer, CommandHandlerFlag.RequiresWorld, 1, "Make an IOU and put it in your inventory", "<wcid>")]
@@ -2376,6 +2410,7 @@ namespace ACE.Server.Command.Handlers
 
             if (iou != null)
                 session.Player.TryCreateInInventoryWithNetworking(iou);
+                PlayerManager.BroadcastToAuditChannel(session.Player, $"{session.Player.Name} created an IOU ({weenieClassId}).");
         }
 
         [CommandHandler("testdeathitems", AccessLevel.Developer, CommandHandlerFlag.RequiresWorld, 0, "Test death item selection", "")]
@@ -2407,13 +2442,13 @@ namespace ACE.Server.Command.Handlers
             }
         }
 
-        [CommandHandler("forcelogout", AccessLevel.Developer, CommandHandlerFlag.RequiresWorld, "Force log off of specified character or last appraised character")]
+        [CommandHandler("forcelogout", AccessLevel.Envoy, CommandHandlerFlag.RequiresWorld, "Force log off of specified character or last appraised character")]
         public static void HandleForceLogout(Session session, params string[] parameters)
         {
             HandleForceLogoff(session, parameters);
         }
 
-        [CommandHandler("forcelogoff", AccessLevel.Developer, CommandHandlerFlag.RequiresWorld, "Force log off of specified character or last appraised character")]
+        [CommandHandler("forcelogoff", AccessLevel.Envoy, CommandHandlerFlag.RequiresWorld, "Force log off of specified character or last appraised character")]
         public static void HandleForceLogoff(Session session, params string[] parameters)
         {
             var playerName = "";
@@ -2514,7 +2549,7 @@ namespace ACE.Server.Command.Handlers
             }
         }
 
-        [CommandHandler("showsession", AccessLevel.Developer, CommandHandlerFlag.RequiresWorld, "Show IP and ID for network session of last appraised character")]
+        [CommandHandler("showsession", AccessLevel.Envoy, CommandHandlerFlag.RequiresWorld, "Show IP and ID for network session of last appraised character")]
         public static void HandleShowSession(Session session, params string[] parameters)
         {
             var target = CommandHandlerHelper.GetLastAppraisedObject(session);
@@ -2528,7 +2563,7 @@ namespace ACE.Server.Command.Handlers
             }
         }
 
-        [CommandHandler("requirecomps", AccessLevel.Developer, CommandHandlerFlag.RequiresWorld, 1,
+        [CommandHandler("requirecomps", AccessLevel.Sentinel, CommandHandlerFlag.RequiresWorld, 1,
             "Sets whether spell components are required to cast spells.",
             "[ on | off ]\n"
             + "This command sets whether spell components are required to cast spells..\n When turned on, spell components are required.\n When turned off, spell components are ignored.")]
@@ -2542,12 +2577,14 @@ namespace ACE.Server.Command.Handlers
                     session.Player.SpellComponentsRequired = false;
                     session.Player.EnqueueBroadcast(new GameMessagePublicUpdatePropertyBool(session.Player, PropertyBool.SpellComponentsRequired, session.Player.SpellComponentsRequired));
                     session.Network.EnqueueSend(new GameMessageSystemChat("You can now cast spells without components.", ChatMessageType.Broadcast));
+                    PlayerManager.BroadcastToAuditChannel(session.Player, $"{session.Player.Name} has toggled RequireComps off.");
                     break;
                 case "on":
                 default:
                     session.Player.SpellComponentsRequired = true;
                     session.Player.EnqueueBroadcast(new GameMessagePublicUpdatePropertyBool(session.Player, PropertyBool.SpellComponentsRequired, session.Player.SpellComponentsRequired));
                     session.Network.EnqueueSend(new GameMessageSystemChat("You can no longer cast spells without components.", ChatMessageType.Broadcast));
+                    PlayerManager.BroadcastToAuditChannel(session.Player, $"{session.Player.Name} has toggled RequireComps on.");
                     break;
             }
         }
@@ -2555,7 +2592,7 @@ namespace ACE.Server.Command.Handlers
         /// <summary>
         /// Enables / disables spell component burning
         /// </summary>
-        [CommandHandler("safecomps", AccessLevel.Developer, CommandHandlerFlag.RequiresWorld, 0, "Enables / disables spell component burning", "<on/off>")]
+        [CommandHandler("safecomps", AccessLevel.Advocate, CommandHandlerFlag.RequiresWorld, 0, "Enables / disables spell component burning", "<on/off>")]
         public static void HandleSafeComps(Session session, params string[] parameters)
         {
             var safeComps = true;
@@ -2565,9 +2602,15 @@ namespace ACE.Server.Command.Handlers
             session.Player.SafeSpellComponents = safeComps;
 
             if (safeComps)
-                session.Network.EnqueueSend(new GameMessageSystemChat("Your spell components are now safe, and will not be consumed when casting spells.", ChatMessageType.Broadcast));
+                {
+                    session.Network.EnqueueSend(new GameMessageSystemChat("Your spell components are now safe, and will not be consumed when casting spells.", ChatMessageType.Broadcast));
+                    PlayerManager.BroadcastToAuditChannel(session.Player, $"{session.Player.Name} has toggled SafeComps on.");
+                }
             else
-                session.Network.EnqueueSend(new GameMessageSystemChat("Your spell components will now be consumed when casting spells.", ChatMessageType.Broadcast));
+                {
+                    session.Network.EnqueueSend(new GameMessageSystemChat("Your spell components will now be consumed when casting spells.", ChatMessageType.Broadcast));
+                    PlayerManager.BroadcastToAuditChannel(session.Player, $"{session.Player.Name} has toggled SafeComps off.");
+                }
         }
 
         /// <summary>
@@ -2600,6 +2643,7 @@ namespace ACE.Server.Command.Handlers
             var msg = spellAdded ? "added to" : "already on";
 
             session.Network.EnqueueSend(new GameMessageSystemChat($"{spell.Name} ({spell.Id}) {msg} {obj.Name}", ChatMessageType.Broadcast));
+            PlayerManager.BroadcastToAuditChannel(session.Player, $"{session.Player.Name} has added {spell.Name} ({spell.Id}) to {obj.Name}.");
         }
 
         [CommandHandler("removeitemspell", AccessLevel.Developer, CommandHandlerFlag.RequiresWorld, 1, "Removes a spell to the last appraised item's spellbook.", "<spell id>")]
@@ -2629,6 +2673,7 @@ namespace ACE.Server.Command.Handlers
             var msg = spellRemoved ? "removed from" : "not found on";
 
             session.Network.EnqueueSend(new GameMessageSystemChat($"{spell.Name} ({spell.Id}) {msg} {obj.Name}", ChatMessageType.Broadcast));
+            PlayerManager.BroadcastToAuditChannel(session.Player, $"{session.Player.Name} has removed {spell.Name} ({spell.Id}) from {obj.Name}.");
         }
 
         [CommandHandler("pktimer", AccessLevel.Developer, CommandHandlerFlag.RequiresWorld, "Sets your PK timer to the current time")]
@@ -2639,7 +2684,7 @@ namespace ACE.Server.Command.Handlers
             session.Network.EnqueueSend(new GameMessageSystemChat($"Updated PK timer", ChatMessageType.Broadcast));
         }
 
-        [CommandHandler("fellow-info", AccessLevel.Developer, CommandHandlerFlag.RequiresWorld, "Shows debug info for fellowships.")]
+        [CommandHandler("fellow-info", AccessLevel.Envoy, CommandHandlerFlag.RequiresWorld, "Shows debug info for fellowships.")]
         public static void HandleFellowInfo(Session session, params string[] parameters)
         {
             var player = CommandHandlerHelper.GetLastAppraisedObject(session) as Player;
@@ -2687,7 +2732,7 @@ namespace ACE.Server.Command.Handlers
             }
         }
 
-        [CommandHandler("fellow-dist", AccessLevel.Developer, CommandHandlerFlag.RequiresWorld, "Shows distance to each fellowship member")]
+        [CommandHandler("fellow-dist", AccessLevel.Envoy, CommandHandlerFlag.RequiresWorld, "Shows distance to each fellowship member")]
         public static void HandleFellowDist(Session session, params string[] parameters)
         {
             var player = session.Player;
@@ -2829,10 +2874,11 @@ namespace ACE.Server.Command.Handlers
                     msg = $"{wo.Name} (0x{wo.Guid.ToString()}) is not a generator.";
 
                 session.Network.EnqueueSend(new GameMessageSystemChat(msg, ChatMessageType.System));
+                PlayerManager.BroadcastToAuditChannel(session.Player, $"{session.Player.Name} used the generatordump command on generator {wo.Name} (0x{wo.Guid.ToString()}).");
             }
         }
 
-        [CommandHandler("purchase-house", AccessLevel.Developer, CommandHandlerFlag.RequiresWorld, "Instantly purchase the house for the last appraised covenant crystal.")]
+        [CommandHandler("purchase-house", AccessLevel.Advocate, CommandHandlerFlag.RequiresWorld, "Instantly purchase the house for the last appraised covenant crystal.")]
         public static void HandlePurchaseHouse(Session session, params string[] parameters)
         {
             var slumlord = CommandHandlerHelper.GetLastAppraisedObject(session) as SlumLord;
@@ -2844,6 +2890,7 @@ namespace ACE.Server.Command.Handlers
             }
             session.Player.SetHouseOwner(slumlord);
             session.Player.GiveDeed(slumlord);
+            PlayerManager.BroadcastToAuditChannel(session.Player, $"{session.Player.Name} used the purchase-house command and purchased {slumlord}.");
         }
 
         [CommandHandler("barrier-test", AccessLevel.Developer, CommandHandlerFlag.RequiresWorld, "Shows debug information for house barriers")]
@@ -2914,7 +2961,7 @@ namespace ACE.Server.Command.Handlers
             session.Network.EnqueueSend(new GameMessageSystemChat(session.Player.DamageHistory.ToString(), ChatMessageType.Broadcast));
         }
 
-        [CommandHandler("remove-vitae", AccessLevel.Developer, CommandHandlerFlag.RequiresWorld, "Removes vitae from last appraised player")]
+        [CommandHandler("remove-vitae", AccessLevel.Sentinel, CommandHandlerFlag.RequiresWorld, "Removes vitae from last appraised player")]
         public static void HandleRemoveVitae(Session session, params string[] parameters)
         {
             var player = CommandHandlerHelper.GetLastAppraisedObject(session) as Player;
@@ -2925,10 +2972,13 @@ namespace ACE.Server.Command.Handlers
             player.EnchantmentManager.RemoveVitae();
 
             if (player != session.Player)
-                session.Network.EnqueueSend(new GameMessageSystemChat($"Removed vitae for {player.Name}", ChatMessageType.Broadcast));
+                {
+                    session.Network.EnqueueSend(new GameMessageSystemChat("Removed vitae for " + player.Name, ChatMessageType.Broadcast));
+                    PlayerManager.BroadcastToAuditChannel(session.Player, $"{session.Player.Name} has removed vitae for '{player.Name}'.");
+                }
         }
 
-        [CommandHandler("fast", AccessLevel.Developer, CommandHandlerFlag.RequiresWorld)]
+        [CommandHandler("fast", AccessLevel.Advocate, CommandHandlerFlag.RequiresWorld)]
         public static void HandleFast(Session session, params string[] parameters)
         {
             var spell = new Spell(SpellId.QuicknessSelf8);
@@ -2939,9 +2989,10 @@ namespace ACE.Server.Command.Handlers
 
             spell = new Spell(SpellId.StrengthSelf8);
             session.Player.CreateEnchantment(session.Player, session.Player, null, spell);
+            PlayerManager.BroadcastToAuditChannel(session.Player, $"{session.Player.Name} used the fast command.");
         }
 
-        [CommandHandler("slow", AccessLevel.Developer, CommandHandlerFlag.RequiresWorld)]
+        [CommandHandler("slow", AccessLevel.Advocate, CommandHandlerFlag.RequiresWorld)]
         public static void HandleSlow(Session session, params string[] parameters)
         {
             var spell = new Spell(SpellId.SlownessSelf8);
@@ -2952,14 +3003,16 @@ namespace ACE.Server.Command.Handlers
 
             spell = new Spell(SpellId.WeaknessSelf8);
             session.Player.CreateEnchantment(session.Player, session.Player, null, spell);
+            PlayerManager.BroadcastToAuditChannel(session.Player, $"{session.Player.Name} used the slow command.");
         }
 
-        [CommandHandler("rip", AccessLevel.Developer, CommandHandlerFlag.RequiresWorld)]
+        [CommandHandler("rip", AccessLevel.Advocate, CommandHandlerFlag.RequiresWorld)]
         public static void HandleRip(Session session, params string[] parameters)
         {
             // insta-death, without the confirmation dialog from /die
             // useful during developer testing
             session.Player.TakeDamage(session.Player, DamageType.Bludgeon, session.Player.Health.Current);
+            PlayerManager.BroadcastToAuditChannel(session.Player, $"{session.Player.Name} killed themself using the rip command.  WHY DID YOU DO IT?");
         }
 
         public static List<PropertyFloat> ResistProperties = new List<PropertyFloat>()
@@ -3042,7 +3095,7 @@ namespace ACE.Server.Command.Handlers
             wo.EnqueueBroadcast(new GameMessageScript(wo.Guid, (PlayScript)pscript));
         }
 
-        [CommandHandler("getinfo", AccessLevel.Developer, CommandHandlerFlag.RequiresWorld, "Shows basic info for the last appraised object.")]
+        [CommandHandler("getinfo", AccessLevel.Player, CommandHandlerFlag.RequiresWorld, "Shows basic info for the last appraised object.")]
         public static void HandleGetInfo(Session session, params string[] parameters)
         {
             var wo = CommandHandlerHelper.GetLastAppraisedObject(session);
@@ -3123,6 +3176,7 @@ namespace ACE.Server.Command.Handlers
                 landblock.Init(true);
             });
             actionChain.EnqueueChain();
+            PlayerManager.BroadcastToAuditChannel(session.Player, $"{session.Player.Name} has reloaded landblock 0x{landblockId:X8}.");
         }
 
         [CommandHandler("showvelocity", AccessLevel.Developer, CommandHandlerFlag.RequiresWorld, "Shows the velocity of the last appraised object.")]
@@ -3162,7 +3216,7 @@ namespace ACE.Server.Command.Handlers
         }
 
         // faction
-        [CommandHandler("faction", AccessLevel.Developer, CommandHandlerFlag.RequiresWorld, 0,
+        [CommandHandler("faction", AccessLevel.Sentinel, CommandHandlerFlag.RequiresWorld, 0,
             "sets your own faction state.",
             "< none / ch / ew / rb > (rank)\n" +
             "This command sets your current faction state\n" +
@@ -3342,6 +3396,7 @@ namespace ACE.Server.Command.Handlers
                 var msg = creature.DeathTreasure != null ? $"DeathTreasure - Tier: {creature.DeathTreasure.Tier}" : "doesn't have PropertyDataId.DeathTreasureType";
 
                 CommandHandlerHelper.WriteOutputInfo(session, $"{creature.Name} ({creature.Guid}) {msg}");
+                PlayerManager.BroadcastToAuditChannel(session.Player, $"{session.Player.Name} used the showtier command on {creature.Name} ({creature.Guid}).");
             }
         }
 
@@ -3376,8 +3431,9 @@ namespace ACE.Server.Command.Handlers
                 foreach (var result in results)
                     CommandHandlerHelper.WriteOutputInfo(session, result.ClassName);
             }
+                PlayerManager.BroadcastToAuditChannel(session.Player, $"{session.Player.Name} used the tiermobs command to find mobs of tier {tier}.");
         }
-
+        
         [CommandHandler("delevel", AccessLevel.Developer, CommandHandlerFlag.RequiresWorld, 1, "Attempts to delevel the current player. Requires enough unassigned xp and unspent skill credits.", "new level")]
         public static void HandleDelevel(Session session, params string[] parameters)
         {
@@ -3543,7 +3599,7 @@ namespace ACE.Server.Command.Handlers
 
             session.Player.HandleActionGetAndWieldItem(itemGuid, equipMask);
         }
-
+        
         [CommandHandler("show-wielded-treasure", AccessLevel.Developer, CommandHandlerFlag.None, 1, "Shows the WieldedTreasure table for a Creature", "wcid")]
         public static void HandleShowWieldedTreasure(Session session, params string[] parameters)
         {
@@ -3605,7 +3661,7 @@ namespace ACE.Server.Command.Handlers
                 }
             }
         }
-
+        
         private static readonly Dictionary<AetheriaColor, uint> AetheriaWcids = new Dictionary<AetheriaColor, uint>()
         {
             { AetheriaColor.Blue,   Aetheria.AetheriaBlue },
@@ -3688,7 +3744,7 @@ namespace ACE.Server.Command.Handlers
             if (!session.Player.TryCreateInInventoryWithNetworking(wo))
                 CommandHandlerHelper.WriteOutputInfo(session, $"Failed to add Aetheria item to player inventory", ChatMessageType.Broadcast);
         }
-
+        
         [CommandHandler("vendordump", AccessLevel.Developer, CommandHandlerFlag.RequiresWorld, 0,
             "Lists all properties for the last vendor you examined.",
             "")]
