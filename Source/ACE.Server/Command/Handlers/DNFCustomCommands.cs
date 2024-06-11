@@ -53,7 +53,7 @@ namespace ACE.Server.Command.Handlers
         [CommandHandler("cmdver", AccessLevel.Envoy, CommandHandlerFlag.None, 0)]
         public static void Handlecmdver(Session session, params string[] parameters)
         {
-            var msg = $"DnF Command Update Version 1.59.4509 Requires core >= 1.59.4509";
+            var msg = $"DnF Command Update Version 1.61.4565 Requires core >= 1.61.4565";
 
             if(session == null)
             {
