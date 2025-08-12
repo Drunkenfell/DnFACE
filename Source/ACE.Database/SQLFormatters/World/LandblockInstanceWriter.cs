@@ -81,18 +81,18 @@ namespace ACE.Database.SQLFormatters.World
             {
                 string label = null;
 
-                if (WeenieNames != null && instanceWcids.TryGetValue(input[i].ParentGuid, out var parentWcid) && WeenieNames.TryGetValue(parentWcid, out var parentWeenieName))
-                    label = $"{parentWeenieName} ({parentWcid})";
+                //if (WeenieNames != null && instanceWcids.TryGetValue(input[i].ParentGuid, out var parentWcid) && WeenieNames.TryGetValue(parentWcid, out var parentWeenieName))
+                    //label = $"{parentWeenieName} ({parentWcid})";
 
                 if (WeenieNames != null && instanceWcids.TryGetValue(input[i].ChildGuid, out var wcid) && WeenieNames.TryGetValue(wcid, out var weenieName))
                 {
-                    if(label != null)
+                    if (label != null)
                         label += $", {weenieName} ({wcid})";
                     else
                         label = $"{weenieName} ({wcid})";
                 }
 
-                if(label != null)
+                if (label != null)
                 {
                     label = $" /* {label} */";
                 }
