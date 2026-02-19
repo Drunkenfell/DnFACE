@@ -1,4 +1,4 @@
-version: 1.74.{build}
+version: 1.75.{build}
 pull_requests:
   do_not_increment_build_number: true
 skip_tags: true
@@ -46,17 +46,19 @@ environment:
     secure: lGLpqex+Weod6ZiPw34RwTv999QvoSZ+imTcmYhiJWQL6XkfkVUYcqOO6pJDuAYt
 services:
   - mysql
-#install:
-#  - ps: AppVeyor\AppVeyorInstall.ps1
+install:
+  - ps: AppVeyor\AppVeyorInstall.ps1
 before_build:
 - cmd: AppVeyor\AppVeyorBeforeCompile.bat
-build:
-  project: Source\ACE.sln
-  verbosity: minimal
-before_package:
-- cmd: AppVeyor\AppVeyorBeforePackage.bat
+#build:
+#  project: Source\ACE.sln
+#  verbosity: minimal
+build_script:
+- cmd: AppVeyor\AppVeyorBuild.bat
 after_build:
 - cmd: AppVeyor\AppVeyorAfterCompile.bat
+#before_package:
+#- cmd: AppVeyor\AppVeyorBeforePackage.bat
 test_script:
 - cmd: AppVeyor\AppVeyorTestScript.bat
 artifacts:
