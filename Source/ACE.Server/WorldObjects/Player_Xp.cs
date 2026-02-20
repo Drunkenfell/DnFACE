@@ -90,14 +90,14 @@ namespace ACE.Server.WorldObjects
             var xpTable = DatManager.PortalDat.XpTable;
 
             var maxLevel = GetMaxLevel();
-            var maxLevelXp = xpTable.CharacterLevelXPList.Last();
+            var maxLevel = GetEffectiveMaxLevel();
 
             if (Level != maxLevel)
             {
                 var addAmount = amount;
 
                 var amountLeftToEnd = (long)maxLevelXp - TotalExperience ?? 0;
-                if (amount > amountLeftToEnd)
+            var maxLevel = GetEffectiveMaxLevel();
                     addAmount = amountLeftToEnd;
 
                 AvailableExperience += addAmount;
@@ -192,16 +192,27 @@ namespace ACE.Server.WorldObjects
         }
 
         /// <summary>
-        /// Returns TRUE if player >= MaxLevel
+        /// Returns the effective maximum level for this player, enforcing a default clamp at 275
+        /// unless the player has the configured quest unlock.
         /// </summary>
-        public bool IsMaxLevel => Level >= GetMaxLevel();
+        public uint GetEffectiveMaxLevel()
+        {
+            // Effective max level is taken from DatManager.PortalDat which may be modified
+            // at startup by ContentUnlockManager to expose configurable tiers.
+            return GetMaxLevel();
+        }
+
+        /// <summary>
+        /// Returns TRUE if player >= effective MaxLevel (respecting content unlock clamps)
+        /// </summary>
+        public bool IsMaxLevel => Level >= GetEffectiveMaxLevel();
 
         /// <summary>
         /// Returns the remaining XP required to reach a level
         /// </summary>
         public long? GetRemainingXP(uint level)
         {
-            var maxLevel = GetMaxLevel();
+            var maxLevel = GetEffectiveMaxLevel();
             if (level < 1 || level > maxLevel)
                 return null;
 
@@ -215,7 +226,7 @@ namespace ACE.Server.WorldObjects
         /// </summary>
         public ulong GetRemainingXP()
         {
-            var maxLevel = GetMaxLevel();
+            var maxLevel = GetEffectiveMaxLevel();
             if (Level >= maxLevel)
                 return 0;
 

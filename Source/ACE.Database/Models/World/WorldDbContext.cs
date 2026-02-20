@@ -123,6 +123,7 @@ public partial class WorldDbContext : DbContext
     public virtual DbSet<WeeniePropertiesString> WeeniePropertiesString { get; set; }
 
     public virtual DbSet<WeeniePropertiesTextureMap> WeeniePropertiesTextureMap { get; set; }
+    public virtual DbSet<ContentUnlock> ContentUnlock { get; set; }
 
     protected override void OnConfiguring(DbContextOptionsBuilder optionsBuilder)
     {
@@ -399,10 +400,23 @@ public partial class WorldDbContext : DbContext
             entity.Property(e => e.MinDelta)
                 .HasComment("Minimum time between Quest completions")
                 .HasColumnName("min_Delta");
-            entity.Property(e => e.Name)
-                .IsRequired()
-                .HasComment("Unique Name of Quest")
-                .HasColumnName("name");
+        });
+
+        modelBuilder.Entity<ContentUnlock>(entity =>
+        {
+            entity.HasKey(e => e.Id).HasName("PRIMARY");
+
+            entity.ToTable("content_unlocks", tb => tb.HasComment("Server-side content unlock definitions (JSON payload)"));
+
+            entity.Property(e => e.Id).HasColumnName("id");
+
+            entity.Property(e => e.Name).HasColumnName("name");
+
+            entity.Property(e => e.Payload).HasColumnName("payload");
+
+            entity.Property(e => e.Enabled).HasColumnName("enabled");
+
+            entity.Property(e => e.LastModified).HasColumnName("last_modified");
         });
 
         modelBuilder.Entity<Recipe>(entity =>

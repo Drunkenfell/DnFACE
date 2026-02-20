@@ -259,6 +259,18 @@ namespace ACE.Server
             log.Info("Starting DatabaseManager...");
             DatabaseManager.Start();
 
+            // Initialize and apply server-side content unlocks (Harmony+)
+            try
+            {
+                log.Info("Initializing ContentUnlockManager...");
+                ACE.Server.Managers.ContentUnlockManager.Initialize();
+                ACE.Server.Managers.ContentUnlockManager.ApplyUnlocks();
+            }
+            catch (Exception ex)
+            {
+                log.Error("ContentUnlockManager failed during startup.", ex);
+            }
+
             log.Info("Starting PropertyManager...");
             PropertyManager.Initialize();
 

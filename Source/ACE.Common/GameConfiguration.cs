@@ -24,6 +24,17 @@ namespace ACE.Common
         public ThreadConfiguration Threading { get; set; } = new ThreadConfiguration();
 
         /// <summary>
+        /// Global desired maximum player level. Defaults to 275 (no extension).
+        /// Operators may set this to a higher value to enable server-side projected XP tables.
+        /// </summary>
+        public int MaxPlayerLevel { get; set; } = 275;
+
+        /// <summary>
+        /// For testing: assume every player has the content unlock quest flag.
+        /// When true, server will treat all players as eligible for extended level caps.
+        /// </summary>
+        public bool AssumeAllPlayersHaveUnlock { get; set; } = true;
+        /// <summary>
         /// The amount of minutes to keep a player object from shard database in memory. Default value is 31 minutes.
         /// </summary>
         public uint ShardPlayerBiotaCacheTime { get; set; } = 31;
