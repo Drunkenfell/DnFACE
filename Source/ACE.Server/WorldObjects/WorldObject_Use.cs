@@ -285,6 +285,18 @@ namespace ACE.Server.WorldObjects
                     return new ActivationResult(new GameEventWeenieErrorWithString(player.Session, WeenieErrorWithString.Your_IsTooLowToUseItemMagic, playerVital.Vital.ToSentence()));
             }
 
+            // verify heritage group
+            if (HeritageGroup != HeritageGroup.Invalid)
+            {
+                if (this is not Creature) // Creatures are not restricted to their own hertigage group
+                {
+                    var playerHeritageGroup = player.HeritageGroup;
+
+                    if (playerHeritageGroup != HeritageGroup)
+                        return new ActivationResult(new GameEventWeenieErrorWithString(player.Session, WeenieErrorWithString.YouMustBe_ToUseItemMagic, HeritageGroup.ToSentence()));
+                }
+            }
+
             // Check for a cooldown
             if (!player.EnchantmentManager.CheckCooldown(CooldownId))
             {
