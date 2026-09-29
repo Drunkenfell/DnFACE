@@ -167,7 +167,7 @@ namespace ACE.Server.WorldObjects.Managers
 
             if (refreshSpell == null)
             {
-                var newEntry = BuildEntry(spell, caster, weapon, equip);
+                var newEntry = BuildEntry(spell, caster, weapon, equip, isWeaponSpell);
                 newEntry.LayerId = result.NextLayerId;
                 WorldObject.Biota.PropertiesEnchantmentRegistry.AddEnchantment(newEntry, WorldObject.BiotaDatabaseLock);
 
@@ -852,7 +852,9 @@ namespace ACE.Server.WorldObjects.Managers
         /// </summary>
         public float GetMultiplicativeMod(PropertyFloat statModKey)
         {
-            var enchantments = GetEnchantments_TopLayer(EnchantmentTypeFlags.Multiplicative, (uint)statModKey);
+            var typeFlags = EnchantmentTypeFlags.Float | EnchantmentTypeFlags.SingleStat | EnchantmentTypeFlags.Multiplicative;
+
+            var enchantments = GetEnchantments_TopLayer(typeFlags, (uint)statModKey);
 
             // multiplicative
             var modifier = 1.0f;
@@ -1403,7 +1405,8 @@ namespace ACE.Server.WorldObjects.Managers
                 if (isDead) break;
             }
 
-            creature.TakeDamageOverTime(tickAmountTotal, damageType);
+            if (!creature.Invincible)
+                creature.TakeDamageOverTime(tickAmountTotal, damageType);
 
             if (!creature.IsAlive) return;
 
